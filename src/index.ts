@@ -1,13 +1,31 @@
 import express, { Express, Request, Response } from "express";
+import { PORT } from "./config/config";
+import router from "./routes";
+import { PrismaClient } from "@prisma/client";
+import { errorMiddlware } from "./middlewares/errors";
+import { SignUpSchema } from "./schema/users";
 
 const app: Express = express();
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello world!");
-});
+app.use(express.json())
 
-const PORT = 8080;
+app.use("/api", router);
+
+app.use(errorMiddlware)
+
+export const prismaClient = new PrismaClient({
+  log: ["query"]
+}).$extends({
+  query: {
+    user: {
+      create({ args, query }) {
+        args.data = SignUpSchema.parse(args.data)
+        return query(args )
+      }
+    }
+  }
+})
 
 app.listen(PORT, () => {
-  console.log("Server started on port 8080.");
+  console.log(`Server started on PORT: ${PORT}`);
 });
