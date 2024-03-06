@@ -6,22 +6,23 @@ import { JWT_SECRET } from "../config/config";
 import { BadRequestsException } from "../exceptions/bad-requests";
 import { ErrorCode } from "../exceptions/root";
 import { SignUpSchema } from "../schema/users";
+import { UnprocessableEntity } from "../exceptions/validation";
+import { NotFoundException } from "../exceptions/not-found";
 
 export const signup = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
+  SignUpSchema.parse(req.body);
   const { email, password, name } = req.body;
 
   let user = await prismaClient.user.findFirst({ where: { email } });
 
   if (user) {
-    return next(
-      new BadRequestsException(
-        "User already exists!",
-        ErrorCode.USER_ALREADY_EXISTS
-      )
+    new BadRequestsException(
+      "User already exists!",
+      ErrorCode.USER_ALREADY_EXISTS
     );
   }
 
@@ -47,26 +48,43 @@ export const signup = async (
   }
 };
 
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, password } = req.body;
 
-export const login = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+    let user = await prismaClient.user.findFirst({ where: { email } });
 
-  let user = await prismaClient.user.findFirst({ where: { email } });
+    if (!user) {
+      throw new NotFoundException("User not found", ErrorCode.USER_NOT_FOUND);
+    }
 
-  if (!user) {
-    throw Error("User does not exist!");
+    if (!compareSync(password, user.password)) {
+      throw new BadRequestsException(
+        "Incorrect password",
+        ErrorCode.INCORRECT_PASSWORD
+      );
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+      },
+      JWT_SECRET
+    );
+
+    res.json({ user, token });
+  } catch (error: any) {
+    next(
+      new UnprocessableEntity(
+        error?.issues,
+        "Unprocessable entity",
+        ErrorCode.UNPROCESSABLE_ENTITY
+      )
+    );
   }
-
-  if (!compareSync(password, user.password)) {
-    throw Error("Incorrect password.");
-  }
-
-  const token = jwt.sign(
-    {
-      userId: user.id,
-    },
-    JWT_SECRET
-  );
-
-  res.json({ user, token });
 };
+

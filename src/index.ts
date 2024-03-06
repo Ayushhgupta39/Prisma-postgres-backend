@@ -15,15 +15,6 @@ app.use(errorMiddlware)
 
 export const prismaClient = new PrismaClient({
   log: ["query"]
-}).$extends({
-  query: {
-    user: {
-      create({ args, query }) {
-        args.data = SignUpSchema.parse(args.data)
-        return query(args )
-      }
-    }
-  }
 })
 
 app.listen(PORT, () => {
