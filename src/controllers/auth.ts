@@ -88,3 +88,7 @@ export const login = async (
   }
 };
 
+export const getCurrentUser = async(req: Request, res: Response, next: NextFunction) => {
+  res.json({ data: (<any>req).user, message: "User found."})
+}
+

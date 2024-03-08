@@ -36,7 +36,7 @@ export const authMiddleware = async (
     }
 
     // 5. To attach the user to the current request object
-    req.user = user!;
+    req.user = user;
   } catch (error) {
     new UnauthorizedException("Unauthorized access", ErrorCode.UNAUTHORIZED);
   }
